@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CanvasJS | Paint app</title>
+</head>
+<body>
+    <h1 id="heading">Simple Paint App</h1>
+    <div id="canvasContainer" style="position: relative;">
+        <canvas id="board"></canvas>
+        <button id="reset">Reset</button>
+        <div id="hoverMessage"></div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const body = document.body;
+            const heading = document.getElementById("heading");
+            const canvasContainer = document.getElementById("canvasContainer");
+            const board = document.getElementById("board");
+            const resetButton = document.getElementById("reset");
+            const hoverMessage = document.getElementById("hoverMessage");
+
+            body.style.margin = "0";
+            body.style.height = "100vh";
+            body.style.display = "flex";
+            body.style.flexDirection = "column";
+            body.style.alignItems = "center";
+            body.style.justifyContent = "center";
+
+            heading.style.textAlign = "center";
+            heading.style.backgroundColor = "#3f3f";
+            heading.style.fontSize = "50px";
+
+            canvasContainer.style.display = "flex";
+            canvasContainer.style.alignItems = "center";
+            canvasContainer.style.flexDirection = "column";
+            canvasContainer.style.justifyContent = "center";
+            canvasContainer.style.marginTop = "10px";
+            canvasContainer.style.position = "relative";
+
+            board.style.border = "2px solid #333";
+            board.style.padding = "20px";
+            board.style.height = "70vh";
+            board.style.width = "60vw";
+            board.style.backgroundColor = "#f0f0f0";
+            board.style.cursor = "crosshair";
+
+            resetButton.style.marginLeft = "10px";
+            resetButton.style.padding = "10px";
+            resetButton.style.fontSize = "16px";
+            resetButton.style.cursor = "pointer";
+            resetButton.style.backgroundColor = "white";
+            resetButton.style.color = "black";
+            resetButton.style.border = "2px solid black";
+            resetButton.style.borderRadius = "4px";
+            resetButton.style.width = "10vw";
+
+            hoverMessage.style.display = "none";
+            hoverMessage.style.position = "absolute";
+            hoverMessage.style.color = "red";
+            hoverMessage.style.fontSize = "20px";
+            hoverMessage.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+
+            const canvas = document.getElementById('board');
+            const context = canvas.getContext('2d');
+
+            let isDrawing = false;
+            let x1, y1, x2, y2;
+            let circles = [];
+            let bgColor;
+
+            // functions
+
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color = color + letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            function drawCircle(x1, y1, x2, y2, bgColor) {
+                clearCanvas();
+
+                for (const circle of circles) {
+                    context.beginPath();
+                    context.arc(circle.centerX, circle.centerY, circle.radius, 0, 2 * Math.PI);
+                    context.strokeStyle = circle.bgColor;
+                    context.stroke();
+                    context.fillStyle = circle.bgColor;
+                    context.fill();
+                    context.closePath();
+                }
+
+                const radius = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) / 2;
+                context.beginPath();
+                context.arc((x1 + x2) / 2, (y1 + y2) / 2, radius, 0, 2 * Math.PI);
+                context.strokeStyle = bgColor;
+                context.stroke();
+                context.fillStyle = bgColor;
+                context.fill();
+            }
+
+            function saveCircle(x1, y1, x2, y2, bgColor) {
+                const centerX = (x1 + x2) / 2;
+                const centerY = (y1 + y2) / 2;
+                const radius = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) / 2;
+                circles.push({ centerX, centerY, radius, bgColor });
+            }
+
+            function deleteCircle(canvasX, canvasY) {
+                const indexToDelete = circles.findIndex(circle => {
+                    context.beginPath();
+                    context.arc(circle.centerX, circle.centerY, circle.radius, 0, 2 * Math.PI);
+                    return context.isPointInPath(canvasX, canvasY);
+                });
+
+                if (indexToDelete !== -1) {
+                    circles.splice(indexToDelete, 1);
+                    drawCircle(x1, y1, x2, y2, bgColor);
+                }
+            }
+
+            function clearCanvas() {
+                context.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            window.addEventListener("load", () => {
+                canvas.height = canvas.offsetHeight;
+                canvas.width = canvas.offsetWidth;
+            });
+
+            canvas.addEventListener("mousedown", function (e) {
+                isDrawing = true;
+                x1 = e.clientX - canvas.getBoundingClientRect().left;
+                y1 = e.clientY - canvas.getBoundingClientRect().top;
+                bgColor = getRandomColor();
+            });
+
+            function hitMiss(canvasX, canvasY) {
+                for (const circle of circles) {
+                    context.beginPath();
+                    context.arc(circle.centerX, circle.centerY, circle.radius, 0, 2 * Math.PI);
+                    if (context.isPointInPath(canvasX, canvasY)) {
+                        return "Hit";
+                    }
+                    context.closePath();
+                }
+                return "Miss";
+            }
+
+            function updateHoverMessage(message, x, y) {
+                hoverMessage.textContent = `${message}`;
+                hoverMessage.style.left = `${x + 5}px`;
+                hoverMessage.style.top = `${y + 2}px`;
+                hoverMessage.style.display = "block";
+            }
+
+
+            canvas.addEventListener("mousemove", function (e) {
+                const canvasX = e.clientX - canvas.getBoundingClientRect().left;
+                const canvasY = e.clientY - canvas.getBoundingClientRect().top;
+
+                if (isDrawing) {
+                    x2 = canvasX;
+                    y2 = canvasY;
+                    drawCircle(x1, y1, x2, y2, bgColor);
+                } else {
+                    const hoverStatus = hitMiss(canvasX, canvasY);
+
+                    if (hoverStatus === "Hit") {
+                        updateHoverMessage("Hit", canvasX, canvasY);
+                    } else {
+                        updateHoverMessage("Miss", canvasX, canvasY);
+                    }
+                }
+            });
+
+            canvas.addEventListener("mouseup", function () {
+                if (isDrawing) {
+                    isDrawing = false;
+                    x2 = event.clientX - canvas.getBoundingClientRect().left;
+                    y2 = event.clientY - canvas.getBoundingClientRect().top;
+                    drawCircle(x1, y1, x2, y2, bgColor);
+                    saveCircle(x1, y1, x2, y2, bgColor);
+                    hoverMessage.style.display = "none";
+                }
+            });
+
+            canvas.addEventListener("dblclick", function (e) {
+                const canvasX = e.clientX - canvas.getBoundingClientRect().left;
+                const canvasY = e.clientY - canvas.getBoundingClientRect().top;
+                deleteCircle(canvasX, canvasY);
+                hoverMessage.style.display = "none";
+            });
+
+            resetButton.addEventListener("click", function () {
+                clearCanvas();
+                circles = [];
+                hoverMessage.style.display = "none";
+            });
+        });
+    </script>
+</body>
+
+</html>
